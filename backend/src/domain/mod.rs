@@ -2,6 +2,7 @@ use secrecy::{ExposeSecret, SecretString};
 
 pub mod auth;
 pub mod cluster;
+pub mod instance_pool;
 pub mod queue;
 pub mod scheduler;
 pub mod training_job;
@@ -77,3 +78,4 @@ macro_rules! identifier {
         }
     };
 }
+

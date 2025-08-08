@@ -4,6 +4,510 @@ use crate::domain::{
         ClusterMemoryStats, ClusterNode, ClusterSummary, Cpu, CpuManufacturer, Gpu,
         GpuManufacturer, GpuModel, NodeStatus,
     },
+    instance_pool::models::{CloudProvider, InstancePool},
+    training_job::models::{TrainingJob, TrainingJobStatus},
+    user::models::ApiKey,
+};
+use chrono::{DateTime, Utc};
+use uuid::Uuid;
+
+//  Instance Pool Repository Records
+
+#[derive(sqlx::Type, Debug, Clone, PartialEq, Eq)]
+#[sqlx(type_name = "cloud_provider", rename_all = "lowercase")]
+pub enum CloudProviderRecord {
+    Aws,
+    Gcp,
+    Azure,
+}
+
+impl From<CloudProvider> for CloudProviderRecord {
+    fn from(value: CloudProvider) -> Self {
+        match value {
+            CloudProvider::Aws => Self::Aws,
+            CloudProvider::Gcp => Self::Gcp,
+            CloudProvider::Azure => Self::Azure,
+        }
+    }
+}
+
+impl From<CloudProviderRecord> for CloudProvider {
+    fn from(value: CloudProviderRecord) -> Self {
+        match value {
+            CloudProviderRecord::Aws => Self::Aws,
+            CloudProviderRecord::Gcp => Self::Gcp,
+            CloudProviderRecord::Azure => Self::Azure,
+        }
+    }
+}
+
+#[derive(sqlx::FromRow)]
+pub struct InstancePoolRecord {
+    pub id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub provider: CloudProviderRecord,
+    pub region: String,
+    pub instance_type: String,
+    pub min_instances: i32,
+    pub max_instances: i32,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl From<InstancePoolRecord> for InstancePool {
+    fn from(record: InstancePoolRecord) -> Self {
+        Self {
+            id: record.id.into(),
+            name: record.name,
+            description: record.description,
+            provider: record.provider.into(),
+            region: record.region,
+            instance_type: record.instance_type,
+            min_instances: record.min_instances,
+            max_instances: record.max_instances,
+            created_at: record.created_at,
+            updated_at: record.updated_at,
+        }
+    }
+}
+
+//  Cluster Repository Records
+
+#[derive(sqlx::FromRow)]
+pub struct ClusterRecord {
+    pub cluster_id: uuid::Uuid,
+    pub cluster_name: String,
+    pub cluster_description: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl From<ClusterRecord> for Cluster {
+    fn from(record: ClusterRecord) -> Self {
+        Self {
+            id: record.cluster_id.into(),
+            name: record.cluster_name,
+            description: record.cluster_description,
+            created_at: record.created_at,
+            updated_at: record.updated_at,
+        }
+    }
+}
+
+#[derive(sqlx::FromRow)]
+pub struct ClusterSummaryRecord {
+    pub cluster_id: uuid::Uuid,
+    pub cluster_name: String,
+    pub cluster_description: Option<String>,
+    pub total_nodes: i64,
+    pub busy_nodes: i64,
+    pub total_running_jobs: i64,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl From<ClusterSummaryRecord> for ClusterSummary {
+    fn from(record: ClusterSummaryRecord) -> Self {
+        Self {
+            id: record.cluster_id.into(),
+            name: record.cluster_name,
+            description: record.cluster_description,
+            total_nodes: record.total_nodes,
+            busy_nodes: record.busy_nodes,
+            total_running_jobs: record.total_running_jobs,
+            created_at: record.created_at,
+            updated_at: record.updated_at,
+        }
+    }
+}
+
+#[derive(sqlx::Type, Debug, Clone, PartialEq, Eq)]
+#[sqlx(type_name = "node_status", rename_all = "snake_case")]
+pub enum NodeStatusRecord {
+    Available,
+    Busy,
+}
+
+impl From<NodeStatus> for NodeStatusRecord {
+    fn from(value: NodeStatus) -> Self {
+        match value {
+            NodeStatus::Available => NodeStatusRecord::Available,
+            NodeStatus::Busy => NodeStatusRecord::Busy,
+        }
+    }
+}
+
+#[derive(sqlx::Type, Debug, Clone, PartialEq, Eq)]
+#[sqlx(type_name = "cpu_manufacturer", rename_all = "PascalCase")]
+pub enum CpuManufacturerRecord {
+    Intel,
+    Amd,
+    Aws,
+}
+
+impl From<CpuManufacturer> for CpuManufacturerRecord {
+    fn from(value: CpuManufacturer) -> Self {
+        match value {
+            CpuManufacturer::Intel => Self::Intel,
+            CpuManufacturer::Amd => Self::Amd,
+            CpuManufacturer::Aws => Self::Aws,
+        }
+    }
+}
+
+impl From<CpuManufacturerRecord> for CpuManufacturer {
+    fn from(value: CpuManufacturerRecord) -> Self {
+        match value {
+            CpuManufacturerRecord::Intel => Self::Intel,
+            CpuManufacturerRecord::Amd => Self::Amd,
+            CpuManufacturerRecord::Aws => Self::Aws,
+        }
+    }
+}
+
+#[derive(sqlx::Type, Debug, Clone, PartialEq, Eq)]
+#[sqlx(type_name = "architecture", rename_all = "snake_case")]
+pub enum ArchitectureRecord {
+    Arm64,
+    Arm64Mac,
+    I386,
+    X86_64,
+    X86_64Mac,
+}
+
+impl From<Architecture> for ArchitectureRecord {
+    fn from(value: Architecture) -> Self {
+        match value {
+            Architecture::Arm64 => Self::Arm64,
+            Architecture::Arm64Mac => Self::Arm64Mac,
+            Architecture::I386 => Self::I386,
+            Architecture::X86_64 => Self::X86_64,
+            Architecture::X86_64Mac => Self::X86_64Mac,
+        }
+    }
+}
+
+impl From<ArchitectureRecord> for Architecture {
+    fn from(value: ArchitectureRecord) -> Self {
+        match value {
+            ArchitectureRecord::Arm64 => Self::Arm64,
+            ArchitectureRecord::Arm64Mac => Self::Arm64Mac,
+            ArchitectureRecord::I386 => Self::I386,
+            ArchitectureRecord::X86_64 => Self::X86_64,
+            ArchitectureRecord::X86_64Mac => Self::X86_64Mac,
+        }
+    }
+}
+
+#[derive(sqlx::FromRow, Debug, Clone)]
+pub struct CpuConfigurationRecord {
+    pub manufacturer: CpuManufacturerRecord,
+    pub architecture: ArchitectureRecord,
+    pub millicores: i32,
+}
+
+impl From<Cpu> for CpuConfigurationRecord {
+    fn from(value: Cpu) -> Self {
+        Self {
+            manufacturer: value.manufacturer.into(),
+            architecture: value.architecture.into(),
+            millicores: value.millicores,
+        }
+    }
+}
+
+impl From<CpuConfigurationRecord> for Cpu {
+    fn from(value: CpuConfigurationRecord) -> Self {
+        Self {
+            manufacturer: value.manufacturer.into(),
+            architecture: value.architecture.into(),
+            millicores: value.millicores,
+        }
+    }
+}
+
+#[derive(sqlx::Type, Debug, Clone, PartialEq, Eq)]
+#[sqlx(type_name = "gpu_manufacturer", rename_all = "PascalCase")]
+pub enum GpuManufacturerRecord {
+    Nvidia,
+    Amd,
+    Aws,
+}
+
+impl From<GpuManufacturer> for GpuManufacturerRecord {
+    fn from(value: GpuManufacturer) -> Self {
+        match value {
+            GpuManufacturer::Nvidia => Self::Nvidia,
+            GpuManufacturer::Amd => Self::Amd,
+            GpuManufacturer::Aws => Self::Aws,
+        }
+    }
+}
+
+impl From<GpuManufacturerRecord> for GpuManufacturer {
+    fn from(value: GpuManufacturerRecord) -> Self {
+        match value {
+            GpuManufacturerRecord::Nvidia => Self::Nvidia,
+            GpuManufacturerRecord::Amd => Self::Amd,
+            GpuManufacturerRecord::Aws => Self::Aws,
+        }
+    }
+}
+
+#[derive(sqlx::Type, Debug, Clone, PartialEq, Eq)]
+#[sqlx(type_name = "gpu_model", rename_all = "snake_case")]
+pub enum GpuModelRecord {
+    TeslaK80,
+    TeslaT4,
+    TeslaV100,
+    A10,
+    A100,
+    H100,
+}
+
+impl From<GpuModel> for GpuModelRecord {
+    fn from(value: GpuModel) -> Self {
+        match value {
+            GpuModel::TeslaK80 => Self::TeslaK80,
+            GpuModel::TeslaT4 => Self::TeslaT4,
+            GpuModel::TeslaV100 => Self::TeslaV100,
+            GpuModel::A10 => Self::A10,
+            GpuModel::A100 => Self::A100,
+            GpuModel::H100 => Self::H100,
+        }
+    }
+}
+
+impl From<GpuModelRecord> for GpuModel {
+    fn from(value: GpuModelRecord) -> Self {
+        match value {
+            GpuModelRecord::TeslaK80 => Self::TeslaK80,
+            GpuModelRecord::TeslaT4 => Self::TeslaT4,
+            GpuModelRecord::TeslaV100 => Self::TeslaV100,
+            GpuModelRecord::A10 => Self::A10,
+            GpuModelRecord::A100 => Self::A100,
+            GpuModelRecord::H100 => Self::H100,
+        }
+    }
+}
+
+#[derive(sqlx::FromRow, Debug, Clone)]
+pub struct GpuConfigurationRecord {
+    pub manufacturer: GpuManufacturerRecord,
+    pub model: GpuModelRecord,
+}
+
+impl From<Gpu> for GpuConfigurationRecord {
+    fn from(value: Gpu) -> Self {
+        Self {
+            manufacturer: value.manufacturer.into(),
+            model: value.model.into(),
+        }
+    }
+}
+
+impl From<GpuConfigurationRecord> for Gpu {
+    fn from(value: GpuConfigurationRecord) -> Self {
+        Self {
+            manufacturer: value.manufacturer.into(),
+            model: value.model.into(),
+        }
+    }
+}
+
+#[derive(sqlx::FromRow)]
+pub struct ClusterNodeRecord {
+    pub id: Uuid,
+    pub cluster_id: Uuid,
+    pub node_status: NodeStatusRecord,
+    pub heartbeat_timestamp: DateTime<Utc>,
+    pub memory_mb: i32,
+    pub cpu: sqlx::types::Json<CpuConfigurationRecord>,
+    pub gpu: Option<sqlx::types::Json<GpuConfigurationRecord>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub assigned_job_id: Option<Uuid>,
+    pub reported_job_id: Option<Uuid>,
+}
+
+impl From<ClusterNodeRecord> for ClusterNode {
+    fn from(record: ClusterNodeRecord) -> Self {
+        Self {
+            id: record.id.into(),
+            cluster_id: record.cluster_id.into(),
+            node_status: record.node_status.into(),
+            heartbeat_timestamp: record.heartbeat_timestamp,
+            memory_mb: record.memory_mb,
+            cpu: record.cpu.0.into(),
+            gpu: record.gpu.map(|g| g.0.into()),
+            created_at: record.created_at,
+            updated_at: record.updated_at,
+            assigned_job_id: record.assigned_job_id.map(|id| id.into()),
+            reported_job_id: record.reported_job_id.map(|id| id.into()),
+        }
+    }
+}
+
+impl From<NodeStatusRecord> for NodeStatus {
+    fn from(value: NodeStatusRecord) -> Self {
+        match value {
+            NodeStatusRecord::Available => Self::Available,
+            NodeStatusRecord::Busy => Self::Busy,
+        }
+    }
+}
+
+#[derive(sqlx::FromRow)]
+pub struct ClusterDetailsRecord {
+    pub cluster_id: uuid::Uuid,
+    pub cluster_name: String,
+    pub cluster_description: Option<String>,
+    pub total_nodes: i64,
+    pub busy_nodes: i64,
+    pub total_memory_mb: Option<i64>,
+    pub used_memory_mb: Option<i64>,
+    pub total_millicores: Option<i64>,
+    pub used_millicores: Option<i64>,
+    pub total_gpus: Option<i64>,
+    pub used_gpus: Option<i64>,
+    pub total_running_jobs: i64,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl From<ClusterDetailsRecord> for ClusterDetails {
+    fn from(record: ClusterDetailsRecord) -> Self {
+        Self {
+            id: record.cluster_id.into(),
+            name: record.cluster_name,
+            description: record.cluster_description,
+            total_nodes: record.total_nodes,
+            busy_nodes: record.busy_nodes,
+            memory_info: ClusterMemoryStats {
+                total_memory_mb: record.total_memory_mb.unwrap_or(0),
+                used_memory_mb: record.used_memory_mb.unwrap_or(0),
+            },
+            cpu_info: ClusterCpuStats {
+                total_millicores: record.total_millicores.unwrap_or(0),
+                used_millicores: record.used_millicores.unwrap_or(0),
+            },
+            gpu_info: ClusterGpuStats {
+                total_gpus: record.total_gpus.unwrap_or(0),
+                used_gpus: record.used_gpus.unwrap_or(0),
+            },
+            job_info: ClusterJobStats {
+                total_running_jobs: record.total_running_jobs,
+            },
+            created_at: record.created_at,
+            updated_at: record.updated_at,
+        }
+    }
+}
+
+//  API Key Repository Records
+
+#[derive(sqlx::FromRow)]
+pub struct ApiKeyRecord {
+    pub id: Uuid,
+    pub user_id: Option<Uuid>,
+    pub cluster_id: Option<Uuid>,
+    pub prefix: String,
+    pub key_hash: String,
+    pub created_at: DateTime<Utc>,
+    pub last_used_at: Option<DateTime<Utc>>,
+    pub expires_at: Option<DateTime<Utc>>,
+}
+
+impl From<ApiKeyRecord> for ApiKey {
+    fn from(record: ApiKeyRecord) -> Self {
+        Self {
+            id: record.id.into(),
+            user_id: record.user_id.map(|id| id.into()),
+            cluster_id: record.cluster_id.map(|id| id.into()),
+            prefix: record.prefix,
+            key_hash: record.key_hash,
+            created_at: record.created_at,
+            last_used_at: record.last_used_at,
+            expires_at: record.expires_at,
+        }
+    }
+}
+
+//  Training Job Repository Records
+
+#[derive(sqlx::Type, Debug, Clone, PartialEq, Eq)]
+#[sqlx(type_name = "training_job_status", rename_all = "lowercase")]
+pub enum TrainingJobStatusRecord {
+    Queued,
+    Starting,
+    Running,
+    Succeeded,
+    Failed,
+    Cancelled,
+}
+
+impl From<TrainingJobStatus> for TrainingJobStatusRecord {
+    fn from(value: TrainingJobStatus) -> Self {
+        match value {
+            TrainingJobStatus::Queued => Self::Queued,
+            TrainingJobStatus::Starting => Self::Starting,
+            TrainingJobStatus::Running => Self::Running,
+            TrainingJobStatus::Succeeded => Self::Succeeded,
+            TrainingJobStatus::Failed => Self::Failed,
+            TrainingJobStatus::Cancelled => Self::Cancelled,
+        }
+    }
+}
+
+impl From<TrainingJobStatusRecord> for TrainingJobStatus {
+    fn from(value: TrainingJobStatusRecord) -> Self {
+        match value {
+            TrainingJobStatusRecord::Queued => Self::Queued,
+            TrainingJobStatusRecord::Starting => Self::Starting,
+            TrainingJobStatusRecord::Running => Self::Running,
+            TrainingJobStatusRecord::Succeeded => Self::Succeeded,
+            TrainingJobStatusRecord::Failed => Self::Failed,
+            TrainingJobStatusRecord::Cancelled => Self::Cancelled,
+        }
+    }
+}
+
+#[derive(sqlx::FromRow)]
+pub struct TrainingJobRecord {
+    pub id: Uuid,
+    pub name: String,
+    pub definition: String,
+    pub status: TrainingJobStatusRecord,
+    pub node_id: Option<Uuid>,
+    pub queue_id: Option<Uuid>,
+    pub resource_requirements: serde_json::Value,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+impl TryFrom<TrainingJobRecord> for TrainingJob {
+    type Error = anyhow::Error;
+
+    fn try_from(value: TrainingJobRecord) -> Result<Self, Self::Error> {
+        let resource_requirements = serde_json::from_value(value.resource_requirements)?;
+        Ok(Self {
+            id: value.id.into(),
+            name: value.name,
+            definition: value.definition,
+            status: value.status.into(),
+            node_id: value.node_id.map(|v| v.into()),
+            queue_id: value.queue_id.map(Into::into),
+            resource_requirements,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+        })
+    }
+}
+        Architecture, Cluster, ClusterCpuStats, ClusterDetails, ClusterGpuStats, ClusterJobStats,
+        ClusterMemoryStats, ClusterNode, ClusterSummary, Cpu, CpuManufacturer, Gpu,
+        GpuManufacturer, GpuModel, NodeStatus,
+    },
     training_job::models::{TrainingJob, TrainingJobStatus},
     user::models::ApiKey,
 };
@@ -465,3 +969,4 @@ impl TryFrom<TrainingJobRecord> for TrainingJob {
         })
     }
 }
+
