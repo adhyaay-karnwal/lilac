@@ -91,10 +91,7 @@ lilac submit
 *   **Resource-Based Scheduling**: The scheduler assigns jobs to nodes based on their resource availability and the job's requirements.
 *   **Real-Time Monitoring**: Monitor the status of nodes, queues, and jobs in real-time.
 *   **User and API Key Management**: Securely manage user accounts and API keys.
-
-### Coming soon
-
-*   **Instance Pools**: Pool instances across many cloud providers into a single, autoscaled cluster. Simply select your cloud providers and the compute you need, and Lilac will provision the instances for you.
+*   **Instance Pools**: Pool instances across many cloud providers (AWS, GCP, and Azure) into a single, autoscaled cluster. Simply select your cloud providers and the compute you need, and Lilac will provision the instances for you.
 *   **Workspaces**: Run Jupyter notebooks, VSCode, or bring your own Docker image on your clusters.
 *   **Data Sources**: Connect your data source into Lilac to use them seamlessly in workspaces or training jobs.
 *   **Runtime Logs**: Get improved visibility into your workloads. Export your logs to your observability platform of choice.
@@ -113,3 +110,4 @@ Contributions are welcome! Please feel free to submit a pull request or open an 
 ## License
 
 Lilac is licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+
